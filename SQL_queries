@@ -1,0 +1,150 @@
+## FINDING DUPLICATES
+
+SELECT title,
+       release_year,
+       language_id,
+       rental_duration,
+       COUNT(*)
+FROM film
+GROUP BY title,
+         release_year,
+         language_id,
+         rental_duration
+HAVING COUNT(*) >1;
+
+
+## ADD NEW COLUMN TO AN EXISTED TABLE
+
+INSERT INTO category
+  (category_id, name)
+VALUES
+  (17,'Thriller'),
+  (18,'Crime'),
+  (19,'Mystery'),
+  (20,'Romance'),
+  (21,'War')
+
+
+## CREATE A NEW TABLE
+
+CREATE TABLE employee
+  (
+employee_id INTEGER NOT NULL,
+name VARCHAR(50),
+contact_number VARCHAR(30),
+designation_id INTEGER,
+last_update TIMESTAMP NOT NULL DEFAULT now(),
+CONSTRAINT employee_pkey PRIMARY KEY (employee_id)
+  )
+
+
+
+## DESCRIPTIVE STATISTICS
+
+-- Find max, min, and average for numerical columns in the film table
+
+SELECT MIN(rental_duration) AS min_rental_duration,	
+	MAX(rental_duration) AS max_rental_duration,
+	AVG(rental_duration) AS avg_rental_duation,
+	MIN(rental_rate) AS min_rental_rate,
+	MAX(rental_rate) AS max_rental_rate,
+	AVG(rental_rate) AS avg_rental_rate,
+	MIN(length) AS min_length,
+	MAX(length) AS max_length,
+	AVG(length) AS avg_length,
+	MIN(replacement_cost) AS min_replacement_cost,
+	MAX(replacement_cost) AS max_replacement_cost,
+	AVG(replacement_cost) AS avg_replacement_cost,
+	COUNT(DISTINCT film_id) AS count_film
+FROM film	
+
+
+-- Find mode value for non-numerical columns in the film table
+
+SELECT mode() WITHIN GROUP (ORDER BY film_id) AS modal_film_id,
+       mode() WITHIN GROUP (ORDER BY title) AS modal_title,
+       mode() WITHIN GROUP (ORDER BY description) AS modal_description,
+       mode() WITHIN GROUP (ORDER BY rating) AS modal_rating
+FROM film
+
+
+## ANALYSIS 
+
+-- Find the top 10 countries in terms of customer numbers
+
+SELECT country.country,				
+    COUNT(customer.customer_id) AS number_of_customer				
+FROM customer				
+INNER JOIN address ON customer.address_id = address.address_id				
+INNER JOIN city ON address.city_id = city.city_id				
+INNER JOIN country ON city.country_id = country.country_id				
+GROUP BY country				
+ORDER BY number_of_customer DESC				
+LIMIT 10				
+
+
+-- Find the top 10 cities among top 10 countries by using a common table expression
+
+WITH top_ten_country_cte AS 						
+(SELECT country.country,						
+    COUNT(customer.customer_id) AS number_of_customer						
+FROM customer						
+INNER JOIN address ON customer.address_id = address.address_id						
+INNER JOIN city ON address.city_id = city.city_id						
+INNER JOIN country ON city.country_id = country.country_id	 					
+ GROUP BY country						
+ORDER BY number_of_customer DESC						
+LIMIT 10)						
+SELECT city.city,						
+	country.country,					
+	COUNT (customer_id) AS number_of_customers					
+FROM customer 						
+INNER JOIN address  ON customer.address_id = address.address_id						
+INNER JOIN city  ON address.city_id = city.city_id						
+INNER JOIN country  ON city.country_ID = country.country_ID						
+INNER JOIN top_ten_country_cte ON country.country = top_ten_country_cte.country						
+GROUP BY city.city, country.country						
+ORDER BY number_of_customers DESC						
+LIMIT 10						
+
+
+-- Find the top 5 customers among the top 10 cities which locate in top 10 countries by using a common table expression					
+						
+WITH top_ten_city_cte AS						
+(WITH top_ten_country_cte AS 						
+(SELECT country.country,						
+    COUNT(customer.customer_id) AS number_of_customer						
+FROM customer						
+INNER JOIN address ON customer.address_id = address.address_id						
+INNER JOIN city ON address.city_id = city.city_id						
+INNER JOIN country ON city.country_id = country.country_id	 					
+ GROUP BY country						
+ORDER BY number_of_customer DESC						
+LIMIT 10)						
+SELECT city.city,						
+	country.country,					
+	COUNT (customer_id) AS number_of_customers					
+FROM customer 						
+INNER JOIN address  ON customer.address_id = address.address_id						
+INNER JOIN city  ON address.city_id = city.city_id						
+INNER JOIN country  ON city.country_ID = country.country_ID						
+INNER JOIN top_ten_country_cte ON country.country = top_ten_country_cte.country						
+GROUP BY city.city, country.country						
+ORDER BY number_of_customers DESC						
+LIMIT 10)						
+						
+SELECT customer.customer_id,
+  customer.last_name, 
+  customer.first_name,						
+  city.city,						
+	country.country,					
+	SUM(payment.amount) AS total_payment					
+FROM customer						
+INNER JOIN address ON customer.address_id = address.address_id						
+INNER JOIN city ON address.city_id = city.city_id						
+INNER JOIN country ON city.country_id = country.country_id						
+INNER JOIN payment ON customer.customer_id = payment.customer_id						
+INNER JOIN top_ten_city_cte ON city.city = top_ten_city_cte.city						
+GROUP BY customer.customer_id, city.city, country.country						
+ORDER BY total_payment DESC						
+LIMIT 5						
